@@ -1060,7 +1060,19 @@ function showLoading(show) {
     }
 }
 
-// Make functions globally accessible
+// Export functions to global scope for inline event handlers
+// Using a namespace to avoid pollution
+window.MT5Analyzer = {
+    removeStrategy,
+    toggleParameterSelection,
+    saveAsPreset,
+    togglePresetSelection,
+    downloadSetFile,
+    uploadBacktest,
+    deletePreset
+};
+
+// For backward compatibility with inline handlers
 window.removeStrategy = removeStrategy;
 window.toggleParameterSelection = toggleParameterSelection;
 window.saveAsPreset = saveAsPreset;

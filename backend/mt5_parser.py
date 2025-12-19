@@ -136,7 +136,7 @@ class MT5Parser:
                     param_value = param.text
                     try:
                         param_value = float(param_value) if '.' in param_value else int(param_value)
-                    except:
+                    except (ValueError, TypeError):
                         pass
                     parameters[param_name] = param_value
                 
@@ -219,33 +219,33 @@ class MT5Parser:
                     if 'profit' in header.lower() and 'factor' not in header.lower():
                         try:
                             profit = float(value.replace(',', '').replace('$', ''))
-                        except:
+                        except (ValueError, TypeError):
                             pass
                     elif 'trades' in header.lower():
                         try:
                             total_trades = int(value)
-                        except:
+                        except (ValueError, TypeError):
                             pass
                     elif 'profit factor' in header.lower():
                         try:
                             profit_factor = float(value)
-                        except:
+                        except (ValueError, TypeError):
                             pass
                     elif 'payoff' in header.lower():
                         try:
                             expected_payoff = float(value.replace(',', '').replace('$', ''))
-                        except:
+                        except (ValueError, TypeError):
                             pass
                     elif 'drawdown' in header.lower():
                         try:
                             drawdown = float(value.replace('%', '').replace(',', ''))
-                        except:
+                        except (ValueError, TypeError):
                             pass
                     else:
                         # Assume it's a parameter
                         try:
                             param_value = float(value) if '.' in value else int(value)
-                        except:
+                        except (ValueError, TypeError):
                             param_value = value
                         parameters[header] = param_value
                 

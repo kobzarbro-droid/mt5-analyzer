@@ -99,12 +99,12 @@ class SetFileGenerator:
                 elif param_type == 'int':
                     try:
                         param_value = int(value_str)
-                    except:
+                    except (ValueError, TypeError):
                         param_value = 0
                 elif param_type == 'double':
                     try:
                         param_value = float(value_str)
-                    except:
+                    except (ValueError, TypeError):
                         param_value = 0.0
                 else:
                     param_value = value_str
