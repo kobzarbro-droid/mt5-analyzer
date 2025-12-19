@@ -7,6 +7,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from portfolio_analyzer import StrategyMetrics, PortfolioAnalysisRequest
 import os
+import time
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -108,28 +110,32 @@ def analyze_portfolio():
     """
     Analyze portfolio endpoint with mock AI
     """
+    start_time = time.time()
+    
     try:
         # Parse request data
         data = request.get_json()
         if not data or 'strategies' not in data:
             return jsonify({
                 "success": False,
-                "error": "Missing 'strategies' in request body"
+                "error": "Missing 'strategies' in request body",
+                "timestamp": datetime.now().isoformat()
             }), 400
         
         # Validate we have at least one strategy
         if len(data['strategies']) == 0:
             return jsonify({
                 "success": False,
-                "error": "At least one strategy is required"
+                "error": "At least one strategy is required",
+                "timestamp": datetime.now().isoformat()
             }), 400
         
         # Convert to StrategyMetrics objects
         strategies = []
-        for strategy_data in data['strategies']:
+        for i, strategy_data in enumerate(data['strategies'], 1):
             try:
                 strategy = StrategyMetrics(
-                    name=strategy_data.get('name', 'Unnamed Strategy'),
+                    name=strategy_data.get('name', f'Strategy {i}'),
                     equity=float(strategy_data.get('equity', 0)),
                     drawdown=float(strategy_data.get('drawdown', 0)),
                     correlation=float(strategy_data.get('correlation', 0)),
@@ -140,29 +146,41 @@ def analyze_portfolio():
             except (ValueError, TypeError) as e:
                 return jsonify({
                     "success": False,
-                    "error": f"Invalid strategy data: {str(e)}"
+                    "error": f"Invalid strategy data at index {i}: {str(e)}",
+                    "timestamp": datetime.now().isoformat()
                 }), 400
         
         # Create portfolio request
         portfolio = PortfolioAnalysisRequest(strategies=strategies)
         
+        # Simulate processing time (0.5-1.5 seconds)
+        time.sleep(0.5)
+        
         # Generate mock analysis
         analysis_text = mock_ai_analysis(portfolio)
+        
+        # Calculate processing time
+        processing_time = time.time() - start_time
         
         # Format result
         result = {
             "success": True,
             "full_analysis": analysis_text,
             "strategies_count": len(strategies),
-            "model": "mock-ai (test mode)"
+            "model": "mock-ai (test mode)",
+            "timestamp": datetime.now().isoformat(),
+            "processing_time": processing_time
         }
         
         return jsonify(result)
     
     except Exception as e:
+        processing_time = time.time() - start_time
         return jsonify({
             "success": False,
-            "error": f"Server error: {str(e)}"
+            "error": f"Server error: {str(e)}",
+            "timestamp": datetime.now().isoformat(),
+            "processing_time": processing_time
         }), 500
 
 

@@ -7,6 +7,14 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from portfolio_analyzer import PortfolioAnalyzer, StrategyMetrics, PortfolioAnalysisRequest
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend communication
@@ -20,8 +28,10 @@ def get_analyzer():
     global analyzer
     if analyzer is None:
         try:
+            logger.info("Initializing PortfolioAnalyzer")
             analyzer = PortfolioAnalyzer()
         except ValueError as e:
+            logger.error(f"Failed to initialize analyzer: {str(e)}")
             return None, str(e)
     return analyzer, None
 
@@ -29,6 +39,7 @@ def get_analyzer():
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
+    logger.debug("Health check requested")
     return jsonify({
         "status": "healthy",
         "service": "MT5 Portfolio Analyzer"
@@ -56,9 +67,12 @@ def analyze_portfolio():
     }
     """
     try:
+        logger.info("Received portfolio analysis request")
+        
         # Get analyzer instance
         analyzer_instance, error = get_analyzer()
         if error:
+            logger.error(f"Analyzer initialization error: {error}")
             return jsonify({
                 "success": False,
                 "error": f"API initialization failed: {error}"
@@ -67,6 +81,7 @@ def analyze_portfolio():
         # Parse request data
         data = request.get_json()
         if not data or 'strategies' not in data:
+            logger.warning("Invalid request: missing 'strategies' field")
             return jsonify({
                 "success": False,
                 "error": "Missing 'strategies' in request body"
@@ -74,17 +89,20 @@ def analyze_portfolio():
         
         # Validate we have at least one strategy
         if len(data['strategies']) == 0:
+            logger.warning("Invalid request: no strategies provided")
             return jsonify({
                 "success": False,
                 "error": "At least one strategy is required"
             }), 400
         
+        logger.info(f"Processing {len(data['strategies'])} strategies")
+        
         # Convert to StrategyMetrics objects
         strategies = []
-        for strategy_data in data['strategies']:
+        for i, strategy_data in enumerate(data['strategies'], 1):
             try:
                 strategy = StrategyMetrics(
-                    name=strategy_data.get('name', 'Unnamed Strategy'),
+                    name=strategy_data.get('name', f'Strategy {i}'),
                     equity=float(strategy_data.get('equity', 0)),
                     drawdown=float(strategy_data.get('drawdown', 0)),
                     correlation=float(strategy_data.get('correlation', 0)),
@@ -92,10 +110,12 @@ def analyze_portfolio():
                     profit=float(strategy_data.get('profit', 0))
                 )
                 strategies.append(strategy)
+                logger.debug(f"Validated strategy {i}: {strategy.name}")
             except (ValueError, TypeError) as e:
+                logger.error(f"Invalid strategy data at index {i}: {str(e)}")
                 return jsonify({
                     "success": False,
-                    "error": f"Invalid strategy data: {str(e)}"
+                    "error": f"Invalid strategy data at index {i}: {str(e)}"
                 }), 400
         
         # Create portfolio request
@@ -107,9 +127,15 @@ def analyze_portfolio():
         # Format for display
         formatted_result = analyzer_instance.format_for_display(result)
         
+        if formatted_result.get("success"):
+            logger.info("Analysis completed successfully")
+        else:
+            logger.warning("Analysis completed with errors")
+        
         return jsonify(formatted_result)
     
     except Exception as e:
+        logger.exception("Unexpected error during analysis")
         return jsonify({
             "success": False,
             "error": f"Server error: {str(e)}"
