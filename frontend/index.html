@@ -5,27 +5,126 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MT5 Portfolio Analyzer - AI Advisor</title>
     <link rel="stylesheet" href="static/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha384-3B/6cHT5nKZM8TKx0vPqN8DwJ7PqJnLvF8tKVnGKhF0Q+9X2F5vL0Y5tF5kCF5F5" crossorigin="anonymous"></script>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🤖 MT5 Portfolio Analyzer</h1>
-            <p class="subtitle">AI-Powered Portfolio Analysis & Recommendations</p>
+            <p class="subtitle">AI-Powered Portfolio Analysis & MT5 Report Optimization</p>
         </header>
 
+        <!-- Tab Navigation -->
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="portfolio">Portfolio Analysis</button>
+            <button class="tab-btn" data-tab="reports">MT5 Reports & Optimization</button>
+            <button class="tab-btn" data-tab="presets">Presets & Comparison</button>
+        </nav>
+
         <main>
-            <section class="input-section">
-                <h2>Portfolio Strategies</h2>
-                <p class="hint">Enter metrics for up to 5 trading strategies to analyze</p>
-                
-                <div id="strategiesContainer">
-                    <!-- Strategy inputs will be dynamically added here -->
+            <!-- Portfolio Analysis Tab (Original) -->
+            <section id="portfolio-tab" class="tab-content active">
+                <div class="input-section">
+                    <h2>Portfolio Strategies</h2>
+                    <p class="hint">Enter metrics for up to 5 trading strategies to analyze</p>
+                    
+                    <div id="strategiesContainer">
+                        <!-- Strategy inputs will be dynamically added here -->
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="addStrategyBtn" class="btn btn-secondary">+ Add Strategy</button>
+                        <button id="analyzeBtn" class="btn btn-primary">🔍 Analyze Portfolio</button>
+                        <button id="loadSampleBtn" class="btn btn-secondary">Load Sample Data</button>
+                    </div>
                 </div>
-                
-                <div class="button-group">
-                    <button id="addStrategyBtn" class="btn btn-secondary">+ Add Strategy</button>
-                    <button id="analyzeBtn" class="btn btn-primary">🔍 Analyze Portfolio</button>
-                    <button id="loadSampleBtn" class="btn btn-secondary">Load Sample Data</button>
+            </section>
+
+            <!-- MT5 Reports Tab (New) -->
+            <section id="reports-tab" class="tab-content">
+                <div class="input-section">
+                    <h2>📊 Upload MT5 Reports</h2>
+                    <p class="hint">Upload optimization and forward test reports to find the best parameters</p>
+                    
+                    <div class="upload-container">
+                        <div class="upload-box">
+                            <h3>Optimization Report</h3>
+                            <input type="file" id="optimizationFile" accept=".xml,.html,.htm" />
+                            <button id="uploadOptimizationBtn" class="btn btn-primary">Upload Optimization</button>
+                            <div id="optimizationStatus" class="upload-status"></div>
+                        </div>
+                        
+                        <div class="upload-box">
+                            <h3>Forward Test Report</h3>
+                            <input type="file" id="forwardFile" accept=".xml,.html,.htm" />
+                            <button id="uploadForwardBtn" class="btn btn-primary">Upload Forward Test</button>
+                            <div id="forwardStatus" class="upload-status"></div>
+                        </div>
+                    </div>
+
+                    <div id="resultsSection" class="results-section hidden">
+                        <h3>📈 Analysis Results</h3>
+                        <div class="filter-section">
+                            <h4>Filter Parameters</h4>
+                            <div class="filter-inputs">
+                                <div class="input-group">
+                                    <label>Min Profit</label>
+                                    <input type="number" id="minProfit" value="0" step="100">
+                                </div>
+                                <div class="input-group">
+                                    <label>Min Profit Factor</label>
+                                    <input type="number" id="minProfitFactor" value="1.0" step="0.1">
+                                </div>
+                                <div class="input-group">
+                                    <label>Min Trades</label>
+                                    <input type="number" id="minTrades" value="10" step="1">
+                                </div>
+                                <div class="input-group">
+                                    <label>Max Drawdown %</label>
+                                    <input type="number" id="maxDrawdown" value="" step="1" placeholder="Optional">
+                                </div>
+                                <div class="input-group">
+                                    <label>Top N Results</label>
+                                    <input type="number" id="topN" value="10" step="1" min="1" max="50">
+                                </div>
+                            </div>
+                            <button id="applyFiltersBtn" class="btn btn-primary">Apply Filters & Find Best</button>
+                        </div>
+
+                        <div id="bestParametersSection" class="best-parameters hidden">
+                            <h4>🏆 Best Parameter Sets</h4>
+                            <div id="bestParametersList"></div>
+                            <div class="button-group">
+                                <button id="getGptRecommendationBtn" class="btn btn-success">🤖 Get GPT Recommendations</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Presets Tab (New) -->
+            <section id="presets-tab" class="tab-content">
+                <div class="input-section">
+                    <h2>💾 Manage Presets</h2>
+                    <p class="hint">Save parameter sets as presets, upload backtests, and compare performance</p>
+                    
+                    <div id="presetsListSection">
+                        <div class="button-group">
+                            <button id="refreshPresetsBtn" class="btn btn-secondary">🔄 Refresh List</button>
+                        </div>
+                        <div id="presetsList"></div>
+                    </div>
+
+                    <div id="comparisonSection" class="comparison-section hidden">
+                        <h3>📊 Comparison</h3>
+                        <div id="selectedPresets"></div>
+                        <div class="button-group">
+                            <button id="comparePresetsBtn" class="btn btn-primary">Compare Selected</button>
+                            <button id="getGptComparisonBtn" class="btn btn-success">🤖 Get GPT Analysis</button>
+                        </div>
+                        <div id="comparisonResults"></div>
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
                 </div>
             </section>
 
@@ -55,6 +154,6 @@
         </div>
     </div>
 
-    <script src="static/app.js"></script>
+    <script src="static/app_enhanced.js"></script>
 </body>
 </html>

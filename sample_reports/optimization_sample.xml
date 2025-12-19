@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OptimizationReport>
+    <Row Pass="1">
+        <Parameter name="StopLoss">50</Parameter>
+        <Parameter name="TakeProfit">100</Parameter>
+        <Parameter name="LotSize">0.1</Parameter>
+        <Result>1250.50</Result>
+        <Trades>45</Trades>
+        <ProfitFactor>1.85</ProfitFactor>
+        <ExpectedPayoff>27.79</ExpectedPayoff>
+        <Drawdown>-250.00</Drawdown>
+        <Sharpe>1.45</Sharpe>
+        <Recovery>5.0</Recovery>
+    </Row>
+    <Row Pass="2">
+        <Parameter name="StopLoss">60</Parameter>
+        <Parameter name="TakeProfit">120</Parameter>
+        <Parameter name="LotSize">0.1</Parameter>
+        <Result>1450.75</Result>
+        <Trades>52</Trades>
+        <ProfitFactor>2.15</ProfitFactor>
+        <ExpectedPayoff>27.90</ExpectedPayoff>
+        <Drawdown>-180.00</Drawdown>
+        <Sharpe>1.75</Sharpe>
+        <Recovery>8.1</Recovery>
+    </Row>
+    <Row Pass="3">
+        <Parameter name="StopLoss">70</Parameter>
+        <Parameter name="TakeProfit">140</Parameter>
+        <Parameter name="LotSize">0.1</Parameter>
+        <Result>980.25</Result>
+        <Trades>38</Trades>
+        <ProfitFactor>1.45</ProfitFactor>
+        <ExpectedPayoff>25.80</ExpectedPayoff>
+        <Drawdown>-320.00</Drawdown>
+        <Sharpe>1.15</Sharpe>
+        <Recovery>3.1</Recovery>
+    </Row>
+    <Row Pass="4">
+        <Parameter name="StopLoss">80</Parameter>
+        <Parameter name="TakeProfit">160</Parameter>
+        <Parameter name="LotSize">0.1</Parameter>
+        <Result>1680.90</Result>
+        <Trades>61</Trades>
+        <ProfitFactor>2.35</ProfitFactor>
+        <ExpectedPayoff>27.56</ExpectedPayoff>
+        <Drawdown>-200.00</Drawdown>
+        <Sharpe>1.92</Sharpe>
+        <Recovery>8.4</Recovery>
+    </Row>
+    <Row Pass="5">
+        <Parameter name="StopLoss">90</Parameter>
+        <Parameter name="TakeProfit">180</Parameter>
+        <Parameter name="LotSize">0.1</Parameter>
+        <Result>1125.40</Result>
+        <Trades>42</Trades>
+        <ProfitFactor>1.68</ProfitFactor>
+        <ExpectedPayoff>26.79</ExpectedPayoff>
+        <Drawdown>-280.00</Drawdown>
+        <Sharpe>1.35</Sharpe>
+        <Recovery>4.0</Recovery>
+    </Row>
+</OptimizationReport>
