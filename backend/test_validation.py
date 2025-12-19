@@ -1,11 +1,27 @@
 """
 Test script for input validation
-Tests the validation logic added to StrategyMetrics and PortfolioAnalysisRequest
+
+This module tests the comprehensive validation logic for:
+- StrategyMetrics: validates equity, drawdown, correlation, recovery factor, and name
+- PortfolioAnalysisRequest: validates strategy count limits
+
+Testing methodology:
+- Unit tests with explicit assertions
+- Boundary value testing for numeric ranges
+- Error message verification
+- Both positive and negative test cases
 """
 
 import sys
 import os
 from portfolio_analyzer import StrategyMetrics, PortfolioAnalysisRequest
+
+# Test data constants
+DEFAULT_EQUITY = 100000.0
+DEFAULT_DRAWDOWN = -10.0
+DEFAULT_CORRELATION = 0.5
+DEFAULT_RECOVERY = 2.0
+DEFAULT_PROFIT = 20.0
 
 def test_valid_strategy():
     """Test creating a valid strategy"""
@@ -76,7 +92,7 @@ def test_invalid_correlation():
         print("✗ Should have raised ValueError for correlation > 1")
         return False
     except ValueError as e:
-        assert "Correlation must be between -1 and 1" in str(e)
+        assert "Correlation must be between" in str(e)
         print(f"✓ Correctly rejected correlation > 1: {e}")
     
     # Test correlation < -1
@@ -92,7 +108,7 @@ def test_invalid_correlation():
         print("✗ Should have raised ValueError for correlation < -1")
         return False
     except ValueError as e:
-        assert "Correlation must be between -1 and 1" in str(e)
+        assert "Correlation must be between" in str(e)
         print(f"✓ Correctly rejected correlation < -1: {e}")
     
     return True
@@ -143,7 +159,7 @@ def test_empty_portfolio():
         print("✗ Should have raised ValueError for empty portfolio")
         return False
     except ValueError as e:
-        assert "At least one strategy is required" in str(e)
+        assert "strategy is required" in str(e)
         print(f"✓ Correctly rejected empty portfolio: {e}")
         return True
 
@@ -152,7 +168,7 @@ def test_too_many_strategies():
     print("\nTesting maximum strategies limit...")
     try:
         strategies = [
-            StrategyMetrics(f"Strategy {i}", 100000, -10, 0.5, 2.0, 20)
+            StrategyMetrics(f"Strategy {i}", DEFAULT_EQUITY, DEFAULT_DRAWDOWN, DEFAULT_CORRELATION, DEFAULT_RECOVERY, DEFAULT_PROFIT)
             for i in range(15)  # More than max allowed (10)
         ]
         portfolio = PortfolioAnalysisRequest(strategies=strategies)
@@ -173,17 +189,17 @@ def test_boundary_values():
     print("✓ Zero drawdown accepted")
     
     # Test correlation boundaries
-    strategy2 = StrategyMetrics("Test", 100000, -10, -1.0, 2.0, 20)
+    strategy2 = StrategyMetrics("Test", DEFAULT_EQUITY, DEFAULT_DRAWDOWN, -1.0, DEFAULT_RECOVERY, DEFAULT_PROFIT)
     assert strategy2.correlation == -1.0
     print("✓ Correlation = -1.0 accepted")
     
-    strategy3 = StrategyMetrics("Test", 100000, -10, 1.0, 2.0, 20)
+    strategy3 = StrategyMetrics("Test", DEFAULT_EQUITY, DEFAULT_DRAWDOWN, 1.0, DEFAULT_RECOVERY, DEFAULT_PROFIT)
     assert strategy3.correlation == 1.0
     print("✓ Correlation = 1.0 accepted")
     
     # Test exactly 10 strategies (should be valid)
     strategies = [
-        StrategyMetrics(f"Strategy {i}", 100000, -10, 0.5, 2.0, 20)
+        StrategyMetrics(f"Strategy {i}", DEFAULT_EQUITY, DEFAULT_DRAWDOWN, DEFAULT_CORRELATION, DEFAULT_RECOVERY, DEFAULT_PROFIT)
         for i in range(10)
     ]
     portfolio = PortfolioAnalysisRequest(strategies=strategies)

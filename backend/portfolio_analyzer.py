@@ -17,6 +17,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Constants
+MAX_STRATEGIES = 10
+MIN_STRATEGIES = 1
+MIN_CORRELATION = -1.0
+MAX_CORRELATION = 1.0
+
 
 @dataclass
 class StrategyMetrics:
@@ -39,8 +45,8 @@ class StrategyMetrics:
         if self.drawdown > 0:
             raise ValueError(f"Drawdown must be negative or zero, got {self.drawdown}")
         
-        if not -1.0 <= self.correlation <= 1.0:
-            raise ValueError(f"Correlation must be between -1 and 1, got {self.correlation}")
+        if not MIN_CORRELATION <= self.correlation <= MAX_CORRELATION:
+            raise ValueError(f"Correlation must be between {MIN_CORRELATION} and {MAX_CORRELATION}, got {self.correlation}")
         
         if self.recovery < 0:
             raise ValueError(f"Recovery factor must be non-negative, got {self.recovery}")
@@ -55,11 +61,11 @@ class PortfolioAnalysisRequest:
     
     def __post_init__(self):
         """Validate portfolio request after initialization"""
-        if not self.strategies:
-            raise ValueError("At least one strategy is required")
+        if len(self.strategies) < MIN_STRATEGIES:
+            raise ValueError(f"At least {MIN_STRATEGIES} strategy is required")
         
-        if len(self.strategies) > 10:
-            raise ValueError(f"Maximum 10 strategies allowed, got {len(self.strategies)}")
+        if len(self.strategies) > MAX_STRATEGIES:
+            raise ValueError(f"Maximum {MAX_STRATEGIES} strategies allowed, got {len(self.strategies)}")
         
         logger.info(f"Portfolio analysis request created with {len(self.strategies)} strategies")
 

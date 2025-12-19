@@ -273,12 +273,17 @@ function exportAnalysis() {
     
     const exportData = {
         export_timestamp: new Date().toISOString(),
-        analysis_timestamp: currentAnalysis.timestamp || new Date().toISOString(),
+        analysis_timestamp: currentAnalysis.timestamp,
         strategies_count: currentAnalysis.strategies_count,
         model: currentAnalysis.model,
         processing_time: currentAnalysis.processing_time,
         analysis: currentAnalysis.full_analysis
     };
+    
+    // Log warning if timestamp is missing
+    if (!currentAnalysis.timestamp) {
+        console.warn('Analysis timestamp is missing from backend response');
+    }
     
     const dataStr = JSON.stringify(exportData, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
