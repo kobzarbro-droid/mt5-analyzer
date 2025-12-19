@@ -174,6 +174,85 @@ curl -X POST http://localhost:5000/api/portfolio/analyze \
 - Correlation closer to 1 means strategies are more similar
 - Recovery factor > 2.0 is generally considered good
 
+## 🆕 MT5 Report Analysis & Optimization (New Features!)
+
+### Quick Start: Analyze MT5 Optimization Reports
+
+1. **Navigate to "MT5 Reports & Optimization" tab**
+
+2. **Upload Your Reports:**
+   - **Optimization Report**: Click "Upload Optimization" and select your MT5 optimization results file (XML or HTML)
+   - **Forward Test Report** (optional): Upload forward test results for validation
+
+3. **Set Filter Criteria:**
+   - Min Profit: Minimum profit threshold (e.g., 1000)
+   - Min Profit Factor: Minimum PF (e.g., 1.5)
+   - Min Trades: Minimum number of trades (e.g., 10)
+   - Max Drawdown: Maximum acceptable drawdown % (optional)
+   - Top N Results: How many top results to show (default: 10)
+
+4. **Find Best Parameters:**
+   - Click "Apply Filters & Find Best"
+   - Review the top-performing parameter sets
+   - See profit, trades, profit factor, drawdown, Sharpe ratio for each
+
+5. **Get AI Recommendations:**
+   - Select parameter sets you're interested in (checkbox)
+   - Click "🤖 Get GPT Recommendations"
+   - AI analyzes which parameters are most promising
+
+6. **Save as Presets:**
+   - Click "💾 Save as Preset" on any parameter set
+   - Give it a meaningful name
+   - Download .set file for MT5
+
+### Managing Presets
+
+1. **Switch to "Presets & Comparison" tab**
+
+2. **View All Presets:**
+   - See all saved presets with their optimization metrics
+   - Green badge = has backtest data, Yellow badge = no backtest yet
+
+3. **Upload Backtest Results:**
+   - After running a backtest in MT5, save the report as HTML
+   - Click "📊 Upload Backtest" for the preset
+   - Upload the HTML backtest report
+   - Preset now shows actual performance data
+
+4. **Compare Multiple Presets:**
+   - Select 2+ presets using checkboxes
+   - Click "Compare Selected"
+   - View side-by-side metrics
+   - See interactive charts comparing performance
+
+5. **Get AI Comparison:**
+   - With presets selected, click "🤖 Get GPT Analysis"
+   - AI provides detailed comparative analysis
+   - Get recommendations on which preset to use for live trading
+
+6. **Download .set Files:**
+   - Click "⬇️ Download .set" for any preset
+   - Load the .set file in MT5 Strategy Tester
+   - Run backtest with those exact parameters
+
+### MT5 Report Formats Supported
+
+- **Optimization Reports**: XML or HTML format from MT5 Strategy Tester
+- **Forward Test Reports**: Same format as optimization
+- **Backtest Reports**: HTML format from MT5 Strategy Tester
+
+### Example Workflow
+
+1. Run optimization in MT5 → Save results → Upload to analyzer
+2. Filter to find top 10 parameter sets
+3. Get GPT recommendations on best sets
+4. Save top 3-5 sets as presets
+5. Download .set files and run backtests in MT5
+6. Upload backtest results to each preset
+7. Compare all presets side-by-side
+8. Get GPT analysis to choose the best for live trading
+
 ---
 
 Happy Analyzing! 🎯📈
