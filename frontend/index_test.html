@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MT5 Portfolio Analyzer - AI Advisor (TEST MODE)</title>
+    <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 MT5 Portfolio Analyzer</h1>
+            <p class="subtitle">AI-Powered Portfolio Analysis & Recommendations (TEST MODE)</p>
+            <p style="color: #f59e0b; font-size: 0.9rem;">⚠️ Using mock AI responses for testing</p>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <h2>Portfolio Strategies</h2>
+                <p class="hint">Enter metrics for up to 5 trading strategies to analyze</p>
+                
+                <div id="strategiesContainer">
+                    <!-- Strategy inputs will be dynamically added here -->
+                </div>
+                
+                <div class="button-group">
+                    <button id="addStrategyBtn" class="btn btn-secondary">+ Add Strategy</button>
+                    <button id="analyzeBtn" class="btn btn-primary">🔍 Analyze Portfolio</button>
+                    <button id="loadSampleBtn" class="btn btn-secondary">Load Sample Data</button>
+                </div>
+            </section>
+
+            <section class="status-section">
+                <div id="statusMessage" class="status-message hidden"></div>
+                <div id="loadingSpinner" class="spinner hidden"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal for displaying AI analysis -->
+    <div id="analysisModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📊 AI Portfolio Analysis</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="analysisResult">
+                    <!-- AI analysis will be displayed here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="closeModalBtn" class="btn btn-secondary">Close</button>
+                <button id="exportBtn" class="btn btn-primary">Export Analysis</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/app_test.js"></script>
+</body>
+</html>
