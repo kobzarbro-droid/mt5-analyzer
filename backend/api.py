@@ -14,6 +14,12 @@ import logging
 from io import BytesIO
 from werkzeug.utils import secure_filename
 
+try:
+    import openai
+except ImportError:
+    openai = None
+    logger.warning("OpenAI package not available. GPT features will not work.")
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -414,7 +420,9 @@ Please provide:
 Format your response in a clear, structured manner."""
         
         # Call OpenAI API
-        import openai
+        if openai is None:
+            return jsonify({"success": False, "error": "OpenAI package not available"}), 500
+        
         openai.api_key = analyzer_instance.api_key
         
         response = openai.chat.completions.create(
@@ -637,7 +645,9 @@ Please provide a comprehensive comparative analysis including:
 Format your response in a clear, structured manner with specific recommendations."""
         
         # Call OpenAI API
-        import openai
+        if openai is None:
+            return jsonify({"success": False, "error": "OpenAI package not available"}), 500
+        
         openai.api_key = analyzer_instance.api_key
         
         response = openai.chat.completions.create(
