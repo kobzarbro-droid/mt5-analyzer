@@ -233,10 +233,25 @@ function displayAnalysis(result) {
     formattedAnalysis = formattedAnalysis.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
     formattedAnalysis = formattedAnalysis.replace(/<\/ul>\s*<ul>/g, '');
     
+    // Format timestamp if available
+    let timestampText = '';
+    if (result.timestamp) {
+        const date = new Date(result.timestamp);
+        timestampText = `<p><strong>Analysis Date:</strong> ${date.toLocaleString()}</p>`;
+    }
+    
+    // Format processing time if available
+    let processingTimeText = '';
+    if (result.processing_time) {
+        processingTimeText = `<p><strong>Processing Time:</strong> ${result.processing_time.toFixed(2)} seconds</p>`;
+    }
+    
     const metaInfo = `
         <div style="background: var(--background); padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem;">
             <p><strong>Strategies Analyzed:</strong> ${result.strategies_count}</p>
             <p><strong>AI Model:</strong> ${result.model}</p>
+            ${timestampText}
+            ${processingTimeText}
         </div>
     `;
     
@@ -257,11 +272,18 @@ function exportAnalysis() {
     }
     
     const exportData = {
-        timestamp: new Date().toISOString(),
+        export_timestamp: new Date().toISOString(),
+        analysis_timestamp: currentAnalysis.timestamp,
         strategies_count: currentAnalysis.strategies_count,
         model: currentAnalysis.model,
+        processing_time: currentAnalysis.processing_time,
         analysis: currentAnalysis.full_analysis
     };
+    
+    // Log warning if timestamp is missing
+    if (!currentAnalysis.timestamp) {
+        console.warn('Analysis timestamp is missing from backend response');
+    }
     
     const dataStr = JSON.stringify(exportData, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });

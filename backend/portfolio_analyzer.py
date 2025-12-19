@@ -4,9 +4,24 @@ Provides AI-powered portfolio analysis using OpenAI API
 """
 
 import os
-from typing import Dict, List, Any
-from dataclasses import dataclass, asdict
+import logging
+from datetime import datetime
+from typing import Dict, List, Any, Optional
+from dataclasses import dataclass, asdict, field
 import json
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Constants
+MAX_STRATEGIES = 10
+MIN_STRATEGIES = 1
+MIN_CORRELATION = -1.0
+MAX_CORRELATION = 1.0
 
 
 @dataclass
@@ -18,12 +33,41 @@ class StrategyMetrics:
     correlation: float
     recovery: float
     profit: float
+    
+    def __post_init__(self):
+        """Validate strategy metrics after initialization"""
+        if not self.name or not isinstance(self.name, str):
+            raise ValueError("Strategy name must be a non-empty string")
+        
+        if self.equity < 0:
+            raise ValueError(f"Equity must be non-negative, got {self.equity}")
+        
+        if self.drawdown > 0:
+            raise ValueError(f"Drawdown must be negative or zero, got {self.drawdown}")
+        
+        if not MIN_CORRELATION <= self.correlation <= MAX_CORRELATION:
+            raise ValueError(f"Correlation must be between {MIN_CORRELATION} and {MAX_CORRELATION}, got {self.correlation}")
+        
+        if self.recovery < 0:
+            raise ValueError(f"Recovery factor must be non-negative, got {self.recovery}")
+        
+        logger.debug(f"Validated strategy metrics for: {self.name}")
 
 
 @dataclass
 class PortfolioAnalysisRequest:
     """Request data for portfolio analysis"""
     strategies: List[StrategyMetrics]
+    
+    def __post_init__(self):
+        """Validate portfolio request after initialization"""
+        if len(self.strategies) < MIN_STRATEGIES:
+            raise ValueError(f"At least {MIN_STRATEGIES} strategy is required")
+        
+        if len(self.strategies) > MAX_STRATEGIES:
+            raise ValueError(f"Maximum {MAX_STRATEGIES} strategies allowed, got {len(self.strategies)}")
+        
+        logger.info(f"Portfolio analysis request created with {len(self.strategies)} strategies")
 
 
 class PortfolioAnalyzer:
@@ -38,7 +82,10 @@ class PortfolioAnalyzer:
         """
         self.api_key = api_key or os.getenv('OPENAI_API_KEY')
         if not self.api_key:
+            logger.error("OpenAI API key not provided")
             raise ValueError("OpenAI API key not provided")
+        
+        logger.info("PortfolioAnalyzer initialized successfully")
     
     def create_analysis_prompt(self, portfolio: PortfolioAnalysisRequest) -> str:
         """
@@ -96,6 +143,9 @@ Format your response in a clear, structured manner suitable for display in a das
         Returns:
             Dictionary containing AI analysis results
         """
+        start_time = datetime.now()
+        logger.info(f"Starting portfolio analysis for {len(portfolio.strategies)} strategies")
+        
         try:
             import openai
             
@@ -104,8 +154,10 @@ Format your response in a clear, structured manner suitable for display in a das
             
             # Create prompt
             prompt = self.create_analysis_prompt(portfolio)
+            logger.debug(f"Created analysis prompt with {len(prompt)} characters")
             
             # Call OpenAI API (GPT-4o)
+            logger.info("Sending request to OpenAI API")
             response = openai.chat.completions.create(
                 model="gpt-4o",
                 messages=[
@@ -124,19 +176,28 @@ Format your response in a clear, structured manner suitable for display in a das
             
             # Extract response
             analysis_text = response.choices[0].message.content
+            elapsed_time = (datetime.now() - start_time).total_seconds()
+            
+            logger.info(f"Analysis completed successfully in {elapsed_time:.2f} seconds")
+            logger.debug(f"Response length: {len(analysis_text)} characters")
             
             return {
                 "success": True,
                 "analysis": analysis_text,
                 "strategies_analyzed": len(portfolio.strategies),
-                "model_used": "gpt-4o"
+                "model_used": "gpt-4o",
+                "timestamp": datetime.now().isoformat(),
+                "processing_time": elapsed_time
             }
             
         except Exception as e:
+            elapsed_time = (datetime.now() - start_time).total_seconds()
+            logger.error(f"Analysis failed after {elapsed_time:.2f} seconds: {str(e)}")
             return {
                 "success": False,
                 "error": str(e),
-                "analysis": None
+                "analysis": None,
+                "timestamp": datetime.now().isoformat()
             }
     
     def format_for_display(self, analysis_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -149,23 +210,31 @@ Format your response in a clear, structured manner suitable for display in a das
         Returns:
             Formatted result ready for UI consumption
         """
+        logger.debug("Formatting analysis result for display")
+        
         if not analysis_result.get("success"):
+            logger.warning("Formatting failed analysis result")
             return {
                 "success": False,
                 "error": analysis_result.get("error", "Unknown error"),
                 "recommendations": [],
                 "strengths": [],
                 "weaknesses": [],
-                "summary": "Analysis failed"
+                "summary": "Analysis failed",
+                "timestamp": analysis_result.get("timestamp", datetime.now().isoformat())
             }
         
         # Parse the analysis text (basic parsing, can be enhanced)
         analysis_text = analysis_result.get("analysis", "")
         
-        return {
+        result = {
             "success": True,
             "full_analysis": analysis_text,
             "strategies_count": analysis_result.get("strategies_analyzed", 0),
             "model": analysis_result.get("model_used", "gpt-4o"),
-            "timestamp": None  # Can add timestamp if needed
+            "timestamp": analysis_result.get("timestamp", datetime.now().isoformat()),
+            "processing_time": analysis_result.get("processing_time")
         }
+        
+        logger.info("Analysis result formatted successfully")
+        return result

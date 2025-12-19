@@ -4,12 +4,15 @@ AI-powered portfolio analysis tool for MetaTrader 5 (MT5) trading strategies. Th
 
 ## Features
 
-- **AI Portfolio Analysis**: Leverage GPT-4o to analyze up to 5 trading strategies
+- **AI Portfolio Analysis**: Leverage GPT-4o to analyze up to 10 trading strategies
 - **Comprehensive Metrics**: Track Equity, Drawdown, Correlation, Recovery Factor, and Profit
 - **Smart Recommendations**: Get actionable insights on strategy optimization
 - **Risk Assessment**: Identify strengths, weaknesses, and risk exposure
 - **Interactive UI**: Modern web interface with modal-based result display
-- **Data Export**: Export analysis results as JSON for further processing
+- **Data Export**: Export analysis results as JSON with timestamps and metadata
+- **Input Validation**: Comprehensive validation ensures data quality and security
+- **Logging & Monitoring**: Track API usage, errors, and performance metrics
+- **Timestamp Tracking**: Every analysis includes timestamp and processing time
 
 ## Architecture
 
@@ -146,17 +149,26 @@ Test endpoint with pre-loaded sample data.
 mt5-analyzer/
 ├── backend/
 │   ├── __init__.py
-│   ├── api.py                 # Flask REST API
-│   └── portfolio_analyzer.py  # Core analysis logic
+│   ├── api.py                    # Flask REST API (production)
+│   ├── api_test_mock.py          # Mock API for testing
+│   ├── portfolio_analyzer.py     # Core analysis logic with validation
+│   ├── test_api.py               # Unit tests
+│   └── test_validation.py        # Validation tests
 ├── frontend/
-│   ├── index.html            # Main UI
+│   ├── index.html                # Main UI (production)
+│   ├── index_test.html           # Test UI
 │   └── static/
-│       ├── app.js            # Frontend JavaScript
-│       └── styles.css        # UI styles
-├── requirements.txt          # Python dependencies
-├── .env.example             # Environment template
-├── .gitignore              # Git ignore rules
-└── README.md              # This file
+│       ├── app.js                # Frontend JavaScript (production)
+│       ├── app_test.js           # Test mode JavaScript
+│       └── styles.css            # UI styles
+├── requirements.txt              # Python dependencies
+├── .env.example                  # Environment template
+├── .gitignore                    # Git ignore rules
+├── README.md                     # This file
+├── SECURITY.md                   # Security guidelines
+├── CHANGELOG.md                  # Version history
+├── QUICKSTART.md                 # Quick start guide
+└── IMPLEMENTATION_NOTES.md       # Technical details
 ```
 
 ## Configuration
@@ -199,10 +211,13 @@ The project follows PEP 8 style guidelines for Python code.
 ⚠️ **Important Security Considerations:**
 
 1. Never commit your `.env` file or expose your OpenAI API key
-2. Consider implementing rate limiting for production use
-3. Validate and sanitize all user inputs
-4. Use HTTPS in production environments
-5. Implement authentication for production deployments
+2. Consider implementing rate limiting for production use (see [SECURITY.md](SECURITY.md))
+3. ✅ **Comprehensive input validation implemented** - All strategy metrics are validated
+4. ✅ **Logging enabled** - API requests and errors are tracked
+5. Use HTTPS in production environments
+6. Implement authentication for production deployments
+
+For detailed security guidelines and best practices, see **[SECURITY.md](SECURITY.md)**.
 
 ## Contributing
 
