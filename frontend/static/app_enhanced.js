@@ -749,7 +749,10 @@ async function loadPresets() {
     }
 }
 
-function displayPresets(presetsList) {
+function displayPresets(presetsArray) {
+    if (!presetsListSection) return;
+    
+    // Use the global presetsList DOM element
     if (!presetsList) return;
     
     presetsList.innerHTML = '';
