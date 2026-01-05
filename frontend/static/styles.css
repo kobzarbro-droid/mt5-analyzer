@@ -677,3 +677,302 @@ header h1 {
         grid-template-columns: 1fr;
     }
 }
+
+/* ==================== Expert Dashboard Styles ==================== */
+
+.filters-panel {
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.filters-panel h3 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.summary-cards .card {
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+    text-align: center;
+}
+
+.summary-cards .card h4 {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.summary-cards .card-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    display: block;
+}
+
+.chart-section {
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.chart-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.chart-container {
+    position: relative;
+    height: 400px;
+    width: 100%;
+}
+
+.chart-container canvas {
+    max-height: 400px;
+}
+
+.experts-section {
+    margin-top: 2rem;
+}
+
+.experts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.experts-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.experts-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.experts-controls label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.experts-controls select {
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+}
+
+#expertsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 1.5rem;
+}
+
+.expert-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px var(--shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.expert-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.expert-card.selected {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.expert-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.expert-card-header h4 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.expert-select-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.expert-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.expert-metric {
+    display: flex;
+    flex-direction: column;
+}
+
+.expert-metric-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.expert-metric-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.expert-metric-value.positive {
+    color: var(--success-color);
+}
+
+.expert-metric-value.negative {
+    color: var(--error-color);
+}
+
+.expert-chart-container {
+    margin-top: 1rem;
+    height: 200px;
+}
+
+.expert-chart-container canvas {
+    max-height: 200px;
+}
+
+.comparison-section {
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-top: 2rem;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.comparison-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.comparison-metric-card {
+    background: var(--background);
+    padding: 1rem;
+    border-radius: 6px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.comparison-metric-card h5 {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.comparison-metric-card .value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.875rem;
+}
+
+/* Select multiple styling */
+select[multiple] {
+    min-height: 120px;
+    padding: 0.5rem;
+}
+
+select[multiple] option {
+    padding: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+select[multiple] option:checked {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Loading states */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    z-index: 10;
+}
+
+.loading-overlay .spinner {
+    display: block;
+}
+
+/* Responsive dashboard */
+@media (max-width: 768px) {
+    #expertsContainer {
+        grid-template-columns: 1fr;
+    }
+    
+    .expert-metrics {
+        grid-template-columns: 1fr;
+    }
+    
+    .experts-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .experts-controls {
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    .experts-controls label,
+    .experts-controls select {
+        width: 100%;
+    }
+}

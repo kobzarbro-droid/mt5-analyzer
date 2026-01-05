@@ -6,9 +6,10 @@ Provides REST endpoints for portfolio analysis
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from portfolio_analyzer import PortfolioAnalyzer, StrategyMetrics, PortfolioAnalysisRequest
-from mt5_parser import MT5Parser, OptimizationResult, BacktestReport
+from mt5_parser import MT5Parser, OptimizationResult, BacktestReport, Trade, EquityPoint
 from set_file_generator import SetFileGenerator
 from preset_manager import PresetManager, Preset
+from expert_analyzer import ExpertAnalyzer, ExpertMetrics
 import os
 import logging
 from io import BytesIO
@@ -35,6 +36,7 @@ analyzer = None
 preset_manager = PresetManager()
 parser = MT5Parser()
 set_generator = SetFileGenerator()
+expert_analyzer = ExpertAnalyzer()
 
 
 def get_analyzer():
@@ -678,6 +680,316 @@ Format your response in a clear, structured manner with specific recommendations
         
     except Exception as e:
         logger.exception("Error generating GPT comparison")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ==================== Expert Analysis Endpoints ====================
+
+@app.route('/api/experts/analyze', methods=['POST'])
+def analyze_experts():
+    """
+    Analyze experts from uploaded reports with grouping by magic number
+    
+    Expected JSON body:
+    {
+        "backtest_report": BacktestReport dict or HTML content,
+        "group_by": "magic_number",
+        "calculate_equity": true,
+        "initial_balance": 10000
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+        
+        # Parse backtest report if HTML content provided
+        backtest_report = data.get('backtest_report')
+        initial_balance = float(data.get('initial_balance', 10000))
+        calculate_equity = data.get('calculate_equity', True)
+        
+        if isinstance(backtest_report, str):
+            # Parse HTML report
+            report = parser.parse_backtest_report(backtest_report)
+            trades = report.trades
+        elif isinstance(backtest_report, dict):
+            # Use provided dict
+            trades = backtest_report.get('trades', [])
+        else:
+            return jsonify({"success": False, "error": "Invalid backtest report format"}), 400
+        
+        if not trades:
+            return jsonify({"success": False, "error": "No trades found in report"}), 400
+        
+        # Group trades by magic number
+        trades_by_magic = expert_analyzer.group_by_magic_from_dict(trades)
+        
+        # Calculate metrics for each expert
+        metrics_by_expert = expert_analyzer.calculate_metrics_from_dict(trades_by_magic, initial_balance)
+        
+        # Calculate equity curves if requested
+        equity_curves = {}
+        if calculate_equity:
+            # Convert dict trades to Trade objects for equity calculation
+            trades_obj_by_magic = {}
+            for magic, trade_dicts in trades_by_magic.items():
+                trades_obj = []
+                for td in trade_dicts:
+                    trade = Trade(
+                        ticket=td.get('ticket', ''),
+                        magic_number=td.get('magic_number', 0),
+                        time=td.get('time', ''),
+                        symbol=td.get('symbol', ''),
+                        type=td.get('type', ''),
+                        volume=td.get('volume', 0.0),
+                        price=td.get('price', 0.0),
+                        sl=td.get('sl', 0.0),
+                        tp=td.get('tp', 0.0),
+                        profit=td.get('profit', 0.0)
+                    )
+                    trades_obj.append(trade)
+                trades_obj_by_magic[magic] = trades_obj
+            
+            equity_curves_obj = expert_analyzer.calculate_equity_curves(trades_obj_by_magic, initial_balance)
+            # Convert to dict format
+            for magic, curve in equity_curves_obj.items():
+                equity_curves[magic] = [point.to_dict() for point in curve]
+        
+        # Calculate overall equity curve
+        overall_equity = []
+        if calculate_equity and trades:
+            # Convert all trades to Trade objects
+            all_trades_obj = []
+            for td in trades:
+                trade = Trade(
+                    ticket=td.get('ticket', ''),
+                    magic_number=td.get('magic_number', 0),
+                    time=td.get('time', ''),
+                    symbol=td.get('symbol', ''),
+                    type=td.get('type', ''),
+                    volume=td.get('volume', 0.0),
+                    price=td.get('price', 0.0),
+                    sl=td.get('sl', 0.0),
+                    tp=td.get('tp', 0.0),
+                    profit=td.get('profit', 0.0)
+                )
+                all_trades_obj.append(trade)
+            
+            overall_curve = parser.calculate_equity_curve(all_trades_obj, initial_balance)
+            overall_equity = [point.to_dict() for point in overall_curve]
+        
+        # Calculate overall metrics
+        total_profit = sum(metrics.net_profit for metrics in metrics_by_expert.values())
+        
+        # Format response
+        experts_data = {}
+        for magic, metrics in metrics_by_expert.items():
+            experts_data[str(magic)] = {
+                "name": f"Expert {magic}",
+                "magic_number": magic,
+                "metrics": metrics.to_dict(),
+                "equity_curve": equity_curves.get(magic, [])
+            }
+        
+        logger.info(f"Analyzed {len(experts_data)} experts")
+        
+        return jsonify({
+            "success": True,
+            "experts": experts_data,
+            "overall": {
+                "equity_curve": overall_equity,
+                "total_profit": total_profit,
+                "experts_count": len(experts_data)
+            }
+        })
+        
+    except Exception as e:
+        logger.exception("Error analyzing experts")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/experts/equity-curve', methods=['POST'])
+def get_equity_curves():
+    """
+    Get equity curves for selected experts
+    
+    Expected JSON body:
+    {
+        "trades": [...],
+        "magic_numbers": [12345, 67890],
+        "initial_balance": 10000
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+        
+        trades = data.get('trades', [])
+        magic_numbers = data.get('magic_numbers', [])
+        initial_balance = float(data.get('initial_balance', 10000))
+        
+        if not trades:
+            return jsonify({"success": False, "error": "No trades provided"}), 400
+        
+        # Group trades by magic number
+        trades_by_magic = expert_analyzer.group_by_magic_from_dict(trades)
+        
+        # Filter by requested magic numbers if provided
+        if magic_numbers:
+            trades_by_magic = {k: v for k, v in trades_by_magic.items() if k in magic_numbers}
+        
+        # Convert dict trades to Trade objects
+        trades_obj_by_magic = {}
+        for magic, trade_dicts in trades_by_magic.items():
+            trades_obj = []
+            for td in trade_dicts:
+                trade = Trade(
+                    ticket=td.get('ticket', ''),
+                    magic_number=td.get('magic_number', 0),
+                    time=td.get('time', ''),
+                    symbol=td.get('symbol', ''),
+                    type=td.get('type', ''),
+                    volume=td.get('volume', 0.0),
+                    price=td.get('price', 0.0),
+                    sl=td.get('sl', 0.0),
+                    tp=td.get('tp', 0.0),
+                    profit=td.get('profit', 0.0)
+                )
+                trades_obj.append(trade)
+            trades_obj_by_magic[magic] = trades_obj
+        
+        # Calculate equity curves
+        equity_curves_obj = expert_analyzer.calculate_equity_curves(trades_obj_by_magic, initial_balance)
+        
+        # Convert to dict format
+        equity_curves = {}
+        for magic, curve in equity_curves_obj.items():
+            equity_curves[str(magic)] = [point.to_dict() for point in curve]
+        
+        logger.info(f"Generated equity curves for {len(equity_curves)} experts")
+        
+        return jsonify({
+            "success": True,
+            "equity_curves": equity_curves
+        })
+        
+    except Exception as e:
+        logger.exception("Error generating equity curves")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/experts/metrics', methods=['GET', 'POST'])
+def get_expert_metrics():
+    """
+    Get metrics for all experts or specific expert
+    
+    Query params (GET): ?magic_number=12345
+    Or POST with JSON: {"trades": [...], "initial_balance": 10000}
+    """
+    try:
+        if request.method == 'POST':
+            data = request.get_json()
+            
+            if not data:
+                return jsonify({"success": False, "error": "No data provided"}), 400
+            
+            trades = data.get('trades', [])
+            initial_balance = float(data.get('initial_balance', 10000))
+            
+            if not trades:
+                return jsonify({"success": False, "error": "No trades provided"}), 400
+            
+            # Group trades and calculate metrics
+            trades_by_magic = expert_analyzer.group_by_magic_from_dict(trades)
+            metrics_by_expert = expert_analyzer.calculate_metrics_from_dict(trades_by_magic, initial_balance)
+            
+            # Convert to dict format
+            metrics_dict = {}
+            for magic, metrics in metrics_by_expert.items():
+                metrics_dict[str(magic)] = metrics.to_dict()
+            
+            return jsonify({
+                "success": True,
+                "metrics": metrics_dict
+            })
+        
+        else:  # GET request
+            magic_number = request.args.get('magic_number', type=int)
+            
+            if magic_number is not None:
+                # Get specific expert from cache
+                if magic_number in expert_analyzer.experts_cache:
+                    metrics = expert_analyzer.experts_cache[magic_number]
+                    return jsonify({
+                        "success": True,
+                        "metrics": metrics.to_dict()
+                    })
+                else:
+                    return jsonify({
+                        "success": False,
+                        "error": f"Expert {magic_number} not found in cache"
+                    }), 404
+            else:
+                # Get all experts from cache
+                metrics_dict = {}
+                for magic, metrics in expert_analyzer.experts_cache.items():
+                    metrics_dict[str(magic)] = metrics.to_dict()
+                
+                return jsonify({
+                    "success": True,
+                    "metrics": metrics_dict
+                })
+        
+    except Exception as e:
+        logger.exception("Error getting expert metrics")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/experts/compare', methods=['POST'])
+def compare_experts():
+    """
+    Compare multiple experts
+    
+    Expected JSON body:
+    {
+        "expert_ids": [12345, 67890],
+        "trades": [...],
+        "initial_balance": 10000
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+        
+        expert_ids = data.get('expert_ids', [])
+        trades = data.get('trades')
+        initial_balance = float(data.get('initial_balance', 10000))
+        
+        if not expert_ids:
+            return jsonify({"success": False, "error": "No expert IDs provided"}), 400
+        
+        # If trades provided, calculate metrics first
+        if trades:
+            trades_by_magic = expert_analyzer.group_by_magic_from_dict(trades)
+            expert_analyzer.calculate_metrics_from_dict(trades_by_magic, initial_balance)
+        
+        # Compare experts
+        comparison = expert_analyzer.compare_experts(expert_ids)
+        
+        logger.info(f"Compared {len(expert_ids)} experts")
+        
+        return jsonify({
+            "success": True,
+            "comparison": comparison.to_dict()
+        })
+        
+    except Exception as e:
+        logger.exception("Error comparing experts")
         return jsonify({"success": False, "error": str(e)}), 500
 
 

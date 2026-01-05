@@ -19,6 +19,7 @@
             <button class="tab-btn active" data-tab="portfolio">Portfolio Analysis</button>
             <button class="tab-btn" data-tab="reports">MT5 Reports & Optimization</button>
             <button class="tab-btn" data-tab="presets">Presets & Comparison</button>
+            <button class="tab-btn" data-tab="dashboard">Expert Dashboard</button>
         </nav>
 
         <main>
@@ -124,6 +125,122 @@
                         </div>
                         <div id="comparisonResults"></div>
                         <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Expert Dashboard Tab (New) -->
+            <section id="dashboard-tab" class="tab-content">
+                <div class="input-section">
+                    <h2>📈 Expert Performance Dashboard</h2>
+                    <p class="hint">Analyze trading experts by magic number with interactive equity curves</p>
+                    
+                    <!-- Upload Backtest for Dashboard -->
+                    <div class="upload-container">
+                        <div class="upload-box">
+                            <h3>Upload Backtest Report for Analysis</h3>
+                            <input type="file" id="dashboardBacktestFile" accept=".html,.htm" />
+                            <button id="uploadDashboardBacktestBtn" class="btn btn-primary">📤 Upload & Analyze</button>
+                            <div id="dashboardUploadStatus" class="upload-status"></div>
+                        </div>
+                    </div>
+
+                    <!-- Filters Panel -->
+                    <div id="dashboardFiltersPanel" class="filters-panel hidden">
+                        <h3>🔍 Filters</h3>
+                        <div class="filter-inputs">
+                            <div class="input-group">
+                                <label for="magicFilter">Magic Numbers</label>
+                                <select id="magicFilter" multiple size="5">
+                                    <!-- Options will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="symbolFilter">Symbols</label>
+                                <select id="symbolFilter">
+                                    <option value="">All Symbols</option>
+                                    <!-- Options will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="dateFrom">From Date</label>
+                                <input type="date" id="dateFrom">
+                            </div>
+                            <div class="input-group">
+                                <label for="dateTo">To Date</label>
+                                <input type="date" id="dateTo">
+                            </div>
+                        </div>
+                        <button id="applyDashboardFilters" class="btn btn-primary">Apply Filters</button>
+                        <button id="clearDashboardFilters" class="btn btn-secondary">Clear Filters</button>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div id="dashboardSummary" class="summary-cards hidden">
+                        <div class="card">
+                            <h4>Total Profit</h4>
+                            <span id="totalProfit" class="card-value">$0.00</span>
+                        </div>
+                        <div class="card">
+                            <h4>Active Experts</h4>
+                            <span id="expertsCount" class="card-value">0</span>
+                        </div>
+                        <div class="card">
+                            <h4>Overall Win Rate</h4>
+                            <span id="overallWinRate" class="card-value">0%</span>
+                        </div>
+                        <div class="card">
+                            <h4>Total Trades</h4>
+                            <span id="totalTrades" class="card-value">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Overall Equity Chart -->
+                    <div id="overallEquitySection" class="chart-section hidden">
+                        <div class="chart-header">
+                            <h3>📊 Overall Equity Curve</h3>
+                            <button id="exportOverallChart" class="btn btn-secondary btn-sm">Export PNG</button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="overallEquityChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Individual Experts Section -->
+                    <div id="expertsSection" class="experts-section hidden">
+                        <div class="experts-header">
+                            <h3>🤖 Expert Performance</h3>
+                            <div class="experts-controls">
+                                <label>
+                                    Sort by:
+                                    <select id="expertSortBy">
+                                        <option value="profit">Net Profit</option>
+                                        <option value="winrate">Win Rate</option>
+                                        <option value="trades">Total Trades</option>
+                                        <option value="profit_factor">Profit Factor</option>
+                                        <option value="recovery">Recovery Factor</option>
+                                    </select>
+                                </label>
+                                <button id="compareSelectedExperts" class="btn btn-primary btn-sm">Compare Selected</button>
+                            </div>
+                        </div>
+                        <div id="expertsContainer">
+                            <!-- Expert cards will be dynamically added here -->
+                        </div>
+                    </div>
+
+                    <!-- Comparison Section -->
+                    <div id="expertComparisonSection" class="comparison-section hidden">
+                        <div class="chart-header">
+                            <h3>📊 Experts Comparison</h3>
+                            <button id="closeComparison" class="btn btn-secondary btn-sm">Close</button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="expertComparisonChart"></canvas>
+                        </div>
+                        <div id="comparisonMetrics" class="comparison-metrics">
+                            <!-- Comparison metrics will be displayed here -->
+                        </div>
                     </div>
                 </div>
             </section>

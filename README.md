@@ -18,12 +18,22 @@ AI-powered portfolio analysis tool for MetaTrader 5 (MT5) trading strategies. Th
 - **Advanced Filtering**: Filter by profit, profit factor, trades, drawdown, Sharpe ratio
 - **GPT Parameter Recommendations**: Get AI insights on which parameters to use
 
-### Preset Management (New!)
+### Preset Management
 - **Save Presets**: Convert parameter sets to reusable presets
 - **Download .set Files**: Export presets as MT5 .set files for quick loading
 - **Upload Backtest Reports**: Associate backtest results with each preset
 - **Compare Multiple Presets**: Side-by-side comparison with charts
 - **GPT Comparative Analysis**: AI-powered recommendations on best presets
+
+### Expert Dashboard (New! ⭐)
+- **Magic Number Support**: Automatically group trades by expert magic number
+- **Interactive Equity Curves**: Real-time Chart.js visualizations with zoom/pan
+- **Overall Performance**: Combined equity curve across all experts
+- **Individual Expert Analysis**: Detailed metrics and charts for each expert
+- **Comprehensive Metrics**: Net profit, win rate, profit factor, max drawdown, recovery factor, Sharpe ratio
+- **Expert Comparison**: Overlay multiple expert equity curves for comparison
+- **Smart Filtering**: Filter by magic number, date range, and symbol
+- **Sorting & Search**: Sort experts by various performance metrics
 
 ### Technical Features
 - **Interactive UI**: Modern tabbed interface with modal-based result display
@@ -41,12 +51,40 @@ The application consists of two main components:
 
 ## Installation
 
-### Prerequisites
+### Quick Start with Docker 🐳 (Recommended)
+
+The easiest way to run MT5 Portfolio Analyzer is with Docker:
+
+1. **Install Docker and Docker Compose**
+   - [Docker Desktop](https://www.docker.com/products/docker-desktop) (includes Docker Compose)
+
+2. **Clone and configure**
+   ```bash
+   git clone https://github.com/kobzarbro-droid/mt5-analyzer.git
+   cd mt5-analyzer
+   cp .env.example .env
+   # Edit .env and add your OpenAI API key
+   ```
+
+3. **Start the application**
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Access the application**
+   - Frontend: http://localhost:8080
+   - Backend API: http://localhost:5000
+
+For detailed Docker setup, troubleshooting, and production deployment, see **[DOCKER.md](DOCKER.md)**.
+
+### Manual Installation
+
+#### Prerequisites
 
 - Python 3.8+
 - OpenAI API key (get one from [OpenAI Platform](https://platform.openai.com/))
 
-### Setup Steps
+#### Setup Steps
 
 1. **Clone the repository**
    ```bash
@@ -159,6 +197,41 @@ The application consists of two main components:
 5. **Download .set Files**:
    - Click "Download .set" for any preset
    - Load the file in MT5 Strategy Tester
+
+### Expert Dashboard Workflow
+
+1. **Upload Backtest Report**:
+   - Navigate to "Expert Dashboard" tab
+   - Upload your MT5 backtest report (HTML format)
+   - System automatically detects and groups experts by magic number
+
+2. **View Dashboard**:
+   - See overall performance summary (total profit, win rate, expert count)
+   - View combined equity curve showing all experts
+   - Browse individual expert cards with mini charts
+
+3. **Analyze Individual Experts**:
+   - Each expert card shows:
+     - Net profit and win rate
+     - Profit factor and recovery factor
+     - Total trades and max drawdown
+     - Mini equity curve visualization
+
+4. **Compare Experts**:
+   - Select multiple experts using checkboxes
+   - Click "Compare Selected"
+   - View overlaid equity curves with color-coded legends
+   - Compare metrics side-by-side
+
+5. **Filter and Sort**:
+   - Filter by magic number, date range, or symbol
+   - Sort experts by profit, win rate, trades, or other metrics
+   - Apply filters to focus on specific expert groups
+
+6. **Export Data**:
+   - Export charts as PNG images
+   - Export metrics to CSV/Excel (coming soon)
+
 
 ### Sample Data
 
