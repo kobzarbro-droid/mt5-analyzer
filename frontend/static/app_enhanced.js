@@ -14,6 +14,14 @@ let presets = [];
 let selectedPresets = new Set();
 let comparisonChart = null;
 
+// Dashboard state
+let dashboardData = null;
+let expertsData = {};
+let selectedExperts = new Set();
+let expertCharts = {};
+let overallChart = null;
+let expertComparisonChart = null;
+
 // DOM elements
 let strategiesContainer, analyzeBtn, addStrategyBtn, loadSampleBtn;
 let statusMessage, loadingSpinner, modal, analysisResult, closeModalBtn, exportBtn;
@@ -28,6 +36,15 @@ let applyFiltersBtn, getGptRecommendationBtn;
 // Presets elements
 let presetsListSection, presetsList, refreshPresetsBtn;
 let comparisonSection, comparePresetsBtn, getGptComparisonBtn;
+
+// Dashboard elements
+let dashboardBacktestFile, uploadDashboardBacktestBtn, dashboardUploadStatus;
+let dashboardFiltersPanel, magicFilter, symbolFilter, dateFrom, dateTo;
+let applyDashboardFilters, clearDashboardFilters;
+let dashboardSummary, totalProfit, expertsCount, overallWinRate, totalTrades;
+let overallEquitySection, overallEquityChart;
+let expertsSection, expertsContainer, expertSortBy, compareSelectedExperts;
+let expertComparisonSection, closeComparison, comparisonMetrics;
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -70,6 +87,32 @@ function initializeElements() {
     comparisonSection = document.getElementById('comparisonSection');
     comparePresetsBtn = document.getElementById('comparePresetsBtn');
     getGptComparisonBtn = document.getElementById('getGptComparisonBtn');
+    
+    // Dashboard elements
+    dashboardBacktestFile = document.getElementById('dashboardBacktestFile');
+    uploadDashboardBacktestBtn = document.getElementById('uploadDashboardBacktestBtn');
+    dashboardUploadStatus = document.getElementById('dashboardUploadStatus');
+    dashboardFiltersPanel = document.getElementById('dashboardFiltersPanel');
+    magicFilter = document.getElementById('magicFilter');
+    symbolFilter = document.getElementById('symbolFilter');
+    dateFrom = document.getElementById('dateFrom');
+    dateTo = document.getElementById('dateTo');
+    applyDashboardFilters = document.getElementById('applyDashboardFilters');
+    clearDashboardFilters = document.getElementById('clearDashboardFilters');
+    dashboardSummary = document.getElementById('dashboardSummary');
+    totalProfit = document.getElementById('totalProfit');
+    expertsCount = document.getElementById('expertsCount');
+    overallWinRate = document.getElementById('overallWinRate');
+    totalTrades = document.getElementById('totalTrades');
+    overallEquitySection = document.getElementById('overallEquitySection');
+    overallEquityChart = document.getElementById('overallEquityChart');
+    expertsSection = document.getElementById('expertsSection');
+    expertsContainer = document.getElementById('expertsContainer');
+    expertSortBy = document.getElementById('expertSortBy');
+    compareSelectedExperts = document.getElementById('compareSelectedExperts');
+    expertComparisonSection = document.getElementById('expertComparisonSection');
+    closeComparison = document.getElementById('closeComparison');
+    comparisonMetrics = document.getElementById('comparisonMetrics');
 }
 
 function setupEventListeners() {
@@ -90,6 +133,14 @@ function setupEventListeners() {
     if (refreshPresetsBtn) refreshPresetsBtn.addEventListener('click', loadPresets);
     if (comparePresetsBtn) comparePresetsBtn.addEventListener('click', comparePresets);
     if (getGptComparisonBtn) getGptComparisonBtn.addEventListener('click', getGptComparison);
+    
+    // Dashboard listeners
+    if (uploadDashboardBacktestBtn) uploadDashboardBacktestBtn.addEventListener('click', uploadDashboardBacktest);
+    if (applyDashboardFilters) applyDashboardFilters.addEventListener('click', applyDashboardFiltersFunc);
+    if (clearDashboardFilters) clearDashboardFilters.addEventListener('click', clearDashboardFiltersFunc);
+    if (compareSelectedExperts) compareSelectedExperts.addEventListener('click', compareExpertsFunc);
+    if (closeComparison) closeComparison.addEventListener('click', closeExpertComparison);
+    if (expertSortBy) expertSortBy.addEventListener('change', sortExperts);
     
     // Modal listeners
     if (modal) {
@@ -1060,6 +1111,565 @@ function showLoading(show) {
     }
 }
 
+// ==================== Expert Dashboard Functions ====================
+
+async function uploadDashboardBacktest() {
+    if (!dashboardBacktestFile || !dashboardBacktestFile.files[0]) {
+        showStatus('Please select a backtest report file', 'error');
+        return;
+    }
+    
+    const file = dashboardBacktestFile.files[0];
+    
+    try {
+        showLoading(true);
+        dashboardUploadStatus.textContent = 'Uploading and analyzing...';
+        
+        // Read file content
+        const content = await readFileAsText(file);
+        
+        // Send to expert analysis endpoint
+        const response = await fetch(`${API_BASE_URL}/api/experts/analyze`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                backtest_report: content,
+                group_by: 'magic_number',
+                calculate_equity: true,
+                initial_balance: 10000
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            dashboardData = data;
+            expertsData = data.experts;
+            
+            dashboardUploadStatus.textContent = `✓ Analyzed ${data.overall.experts_count} experts`;
+            dashboardUploadStatus.style.color = 'var(--success-color)';
+            
+            // Show dashboard sections
+            dashboardFiltersPanel.classList.remove('hidden');
+            dashboardSummary.classList.remove('hidden');
+            overallEquitySection.classList.remove('hidden');
+            expertsSection.classList.remove('hidden');
+            
+            // Populate filters
+            populateDashboardFilters();
+            
+            // Display dashboard
+            displayDashboardSummary();
+            displayOverallEquityCurve();
+            displayExperts();
+            
+            showStatus('Dashboard loaded successfully!', 'success');
+        } else {
+            throw new Error(data.error || 'Analysis failed');
+        }
+    } catch (error) {
+        console.error('Dashboard upload error:', error);
+        dashboardUploadStatus.textContent = `✗ Error: ${error.message}`;
+        dashboardUploadStatus.style.color = 'var(--error-color)';
+        showStatus(`Failed to analyze: ${error.message}`, 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(e);
+        reader.readAsText(file);
+    });
+}
+
+function populateDashboardFilters() {
+    if (!dashboardData) return;
+    
+    // Populate magic number filter
+    magicFilter.innerHTML = '';
+    const magicNumbers = Object.keys(expertsData);
+    magicNumbers.forEach(magic => {
+        const option = document.createElement('option');
+        option.value = magic;
+        option.textContent = `Expert ${magic}`;
+        option.selected = true;
+        magicFilter.appendChild(option);
+    });
+    
+    // Populate symbol filter
+    const symbols = new Set();
+    Object.values(expertsData).forEach(expert => {
+        if (expert.metrics && expert.metrics.symbols) {
+            expert.metrics.symbols.forEach(s => symbols.add(s));
+        }
+    });
+    
+    symbolFilter.innerHTML = '<option value="">All Symbols</option>';
+    Array.from(symbols).sort().forEach(symbol => {
+        const option = document.createElement('option');
+        option.value = symbol;
+        option.textContent = symbol;
+        symbolFilter.appendChild(option);
+    });
+}
+
+function displayDashboardSummary() {
+    if (!dashboardData) return;
+    
+    const overall = dashboardData.overall;
+    
+    // Calculate overall metrics
+    let totalProfit_val = 0;
+    let totalTrades_val = 0;
+    let totalWinningTrades = 0;
+    
+    Object.values(expertsData).forEach(expert => {
+        const metrics = expert.metrics;
+        totalProfit_val += metrics.net_profit || 0;
+        totalTrades_val += metrics.total_trades || 0;
+        totalWinningTrades += metrics.profit_trades || 0;
+    });
+    
+    const overallWinRate_val = totalTrades_val > 0 ? (totalWinningTrades / totalTrades_val * 100).toFixed(2) : 0;
+    
+    // Update summary cards
+    totalProfit.textContent = `$${totalProfit_val.toFixed(2)}`;
+    totalProfit.style.color = totalProfit_val >= 0 ? 'var(--success-color)' : 'var(--error-color)';
+    
+    expertsCount.textContent = overall.experts_count || Object.keys(expertsData).length;
+    overallWinRate.textContent = `${overallWinRate_val}%`;
+    totalTrades.textContent = totalTrades_val;
+}
+
+function displayOverallEquityCurve() {
+    if (!dashboardData || !dashboardData.overall || !dashboardData.overall.equity_curve) return;
+    
+    const equityCurve = dashboardData.overall.equity_curve;
+    
+    if (equityCurve.length === 0) return;
+    
+    // Prepare chart data
+    const labels = equityCurve.map(point => {
+        const date = new Date(point.timestamp);
+        return date.toLocaleDateString();
+    });
+    
+    const data = equityCurve.map(point => point.balance);
+    
+    // Destroy previous chart
+    if (overallChart) {
+        overallChart.destroy();
+    }
+    
+    // Create new chart
+    const ctx = overallEquityChart.getContext('2d');
+    overallChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Overall Equity',
+                data: data,
+                borderColor: 'rgb(37, 99, 235)',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return `Equity: $${context.parsed.y.toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(0);
+                        }
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+}
+
+function displayExperts() {
+    if (!expertsData) return;
+    
+    expertsContainer.innerHTML = '';
+    
+    // Convert to array for sorting
+    const expertsArray = Object.entries(expertsData).map(([magic, data]) => ({
+        magic: parseInt(magic),
+        data: data
+    }));
+    
+    // Sort experts
+    sortExpertsArray(expertsArray);
+    
+    // Create expert cards
+    expertsArray.forEach(({ magic, data }) => {
+        const card = createExpertCard(magic, data);
+        expertsContainer.appendChild(card);
+    });
+}
+
+function createExpertCard(magic, expertData) {
+    const metrics = expertData.metrics;
+    const equityCurve = expertData.equity_curve || [];
+    
+    const card = document.createElement('div');
+    card.className = 'expert-card';
+    card.dataset.magic = magic;
+    
+    // Header
+    const header = document.createElement('div');
+    header.className = 'expert-card-header';
+    header.innerHTML = `
+        <h4>${expertData.name || `Expert ${magic}`}</h4>
+        <input type="checkbox" class="expert-select-checkbox" 
+               onchange="toggleExpertSelection(${magic})" 
+               ${selectedExperts.has(magic) ? 'checked' : ''}>
+    `;
+    card.appendChild(header);
+    
+    // Metrics
+    const metricsDiv = document.createElement('div');
+    metricsDiv.className = 'expert-metrics';
+    
+    const profitClass = metrics.net_profit >= 0 ? 'positive' : 'negative';
+    
+    metricsDiv.innerHTML = `
+        <div class="expert-metric">
+            <span class="expert-metric-label">Net Profit</span>
+            <span class="expert-metric-value ${profitClass}">$${metrics.net_profit.toFixed(2)}</span>
+        </div>
+        <div class="expert-metric">
+            <span class="expert-metric-label">Win Rate</span>
+            <span class="expert-metric-value">${metrics.win_rate.toFixed(2)}%</span>
+        </div>
+        <div class="expert-metric">
+            <span class="expert-metric-label">Profit Factor</span>
+            <span class="expert-metric-value">${metrics.profit_factor.toFixed(2)}</span>
+        </div>
+        <div class="expert-metric">
+            <span class="expert-metric-label">Total Trades</span>
+            <span class="expert-metric-value">${metrics.total_trades}</span>
+        </div>
+        <div class="expert-metric">
+            <span class="expert-metric-label">Max Drawdown</span>
+            <span class="expert-metric-value negative">${metrics.max_drawdown_percent.toFixed(2)}%</span>
+        </div>
+        <div class="expert-metric">
+            <span class="expert-metric-label">Recovery Factor</span>
+            <span class="expert-metric-value">${metrics.recovery_factor.toFixed(2)}</span>
+        </div>
+    `;
+    card.appendChild(metricsDiv);
+    
+    // Mini equity chart
+    if (equityCurve.length > 0) {
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'expert-chart-container';
+        
+        const canvas = document.createElement('canvas');
+        canvas.id = `expertChart_${magic}`;
+        chartContainer.appendChild(canvas);
+        card.appendChild(chartContainer);
+        
+        // Create chart after DOM update
+        setTimeout(() => createExpertMiniChart(magic, equityCurve), 0);
+    }
+    
+    return card;
+}
+
+function createExpertMiniChart(magic, equityCurve) {
+    const canvas = document.getElementById(`expertChart_${magic}`);
+    if (!canvas) return;
+    
+    const labels = equityCurve.map((point, idx) => idx);
+    const data = equityCurve.map(point => point.balance);
+    
+    // Destroy previous chart if exists
+    if (expertCharts[magic]) {
+        expertCharts[magic].destroy();
+    }
+    
+    const ctx = canvas.getContext('2d');
+    expertCharts[magic] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                borderColor: 'rgb(37, 99, 235)',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                borderWidth: 1.5,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    enabled: false
+                }
+            },
+            scales: {
+                x: {
+                    display: false
+                },
+                y: {
+                    display: false
+                }
+            },
+            elements: {
+                point: {
+                    radius: 0
+                }
+            }
+        }
+    });
+}
+
+function toggleExpertSelection(magic) {
+    if (selectedExperts.has(magic)) {
+        selectedExperts.delete(magic);
+    } else {
+        selectedExperts.add(magic);
+    }
+    
+    // Update card styling
+    const card = document.querySelector(`.expert-card[data-magic="${magic}"]`);
+    if (card) {
+        if (selectedExperts.has(magic)) {
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
+    }
+}
+
+function sortExperts() {
+    displayExperts();
+}
+
+function sortExpertsArray(expertsArray) {
+    const sortBy = expertSortBy ? expertSortBy.value : 'profit';
+    
+    expertsArray.sort((a, b) => {
+        const metricsA = a.data.metrics;
+        const metricsB = b.data.metrics;
+        
+        switch (sortBy) {
+            case 'profit':
+                return metricsB.net_profit - metricsA.net_profit;
+            case 'winrate':
+                return metricsB.win_rate - metricsA.win_rate;
+            case 'trades':
+                return metricsB.total_trades - metricsA.total_trades;
+            case 'profit_factor':
+                return metricsB.profit_factor - metricsA.profit_factor;
+            case 'recovery':
+                return metricsB.recovery_factor - metricsA.recovery_factor;
+            default:
+                return 0;
+        }
+    });
+}
+
+async function compareExpertsFunc() {
+    if (selectedExperts.size < 2) {
+        showStatus('Please select at least 2 experts to compare', 'warning');
+        return;
+    }
+    
+    try {
+        showLoading(true);
+        
+        // Prepare data for comparison chart
+        const datasets = [];
+        const colors = [
+            'rgb(37, 99, 235)',
+            'rgb(16, 185, 129)',
+            'rgb(245, 158, 11)',
+            'rgb(239, 68, 68)',
+            'rgb(139, 92, 246)',
+            'rgb(236, 72, 153)'
+        ];
+        
+        let maxLength = 0;
+        const selectedArray = Array.from(selectedExperts);
+        
+        selectedArray.forEach((magic, idx) => {
+            const expertData = expertsData[magic];
+            if (!expertData || !expertData.equity_curve) return;
+            
+            const equityCurve = expertData.equity_curve;
+            if (equityCurve.length > maxLength) {
+                maxLength = equityCurve.length;
+            }
+            
+            const data = equityCurve.map(point => point.balance);
+            const color = colors[idx % colors.length];
+            
+            datasets.push({
+                label: expertData.name || `Expert ${magic}`,
+                data: data,
+                borderColor: color,
+                backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.1)'),
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4
+            });
+        });
+        
+        // Create labels
+        const labels = Array.from({ length: maxLength }, (_, i) => i);
+        
+        // Show comparison section
+        expertComparisonSection.classList.remove('hidden');
+        
+        // Destroy previous chart
+        if (expertComparisonChart) {
+            expertComparisonChart.destroy();
+        }
+        
+        // Create comparison chart
+        const ctx = document.getElementById('expertComparisonChart').getContext('2d');
+        expertComparisonChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(0);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Display comparison metrics
+        displayComparisonMetrics(selectedArray);
+        
+        showStatus('Experts compared successfully', 'success');
+    } catch (error) {
+        console.error('Comparison error:', error);
+        showStatus(`Failed to compare: ${error.message}`, 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function displayComparisonMetrics(expertIds) {
+    if (!comparisonMetrics) return;
+    
+    comparisonMetrics.innerHTML = '';
+    
+    expertIds.forEach(magic => {
+        const expertData = expertsData[magic];
+        if (!expertData) return;
+        
+        const metrics = expertData.metrics;
+        
+        const card = document.createElement('div');
+        card.className = 'comparison-metric-card';
+        card.innerHTML = `
+            <h5>${expertData.name || `Expert ${magic}`}</h5>
+            <div class="value">Profit: $${metrics.net_profit.toFixed(2)}</div>
+            <div>Win Rate: ${metrics.win_rate.toFixed(2)}%</div>
+            <div>Profit Factor: ${metrics.profit_factor.toFixed(2)}</div>
+            <div>Recovery: ${metrics.recovery_factor.toFixed(2)}</div>
+            <div>Trades: ${metrics.total_trades}</div>
+        `;
+        
+        comparisonMetrics.appendChild(card);
+    });
+}
+
+function closeExpertComparison() {
+    if (expertComparisonSection) {
+        expertComparisonSection.classList.add('hidden');
+    }
+    
+    if (expertComparisonChart) {
+        expertComparisonChart.destroy();
+        expertComparisonChart = null;
+    }
+}
+
+function applyDashboardFiltersFunc() {
+    // This would filter the displayed experts based on selected filters
+    // For now, just show a message
+    showStatus('Filters applied (functionality to be enhanced)', 'info');
+}
+
+function clearDashboardFiltersFunc() {
+    // Clear all filters
+    if (magicFilter) {
+        Array.from(magicFilter.options).forEach(opt => opt.selected = true);
+    }
+    if (symbolFilter) symbolFilter.value = '';
+    if (dateFrom) dateFrom.value = '';
+    if (dateTo) dateTo.value = '';
+    
+    showStatus('Filters cleared', 'info');
+}
+
 // Export functions to global scope for inline event handlers
 // Using a namespace to avoid pollution
 window.MT5Analyzer = {
@@ -1069,7 +1679,8 @@ window.MT5Analyzer = {
     togglePresetSelection,
     downloadSetFile,
     uploadBacktest,
-    deletePreset
+    deletePreset,
+    toggleExpertSelection
 };
 
 // For backward compatibility with inline handlers
@@ -1080,3 +1691,4 @@ window.togglePresetSelection = togglePresetSelection;
 window.downloadSetFile = downloadSetFile;
 window.uploadBacktest = uploadBacktest;
 window.deletePreset = deletePreset;
+window.toggleExpertSelection = toggleExpertSelection;
