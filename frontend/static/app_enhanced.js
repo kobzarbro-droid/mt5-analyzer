@@ -1,7 +1,10 @@
 // MT5 Portfolio Analyzer - Enhanced Frontend JavaScript
 
 // Configuration
-const API_BASE_URL = 'http://localhost:5000';
+// Use relative URL for API when in production/Docker, or localhost for development
+const API_BASE_URL = window.location.hostname === 'localhost' && window.location.port !== '8080' 
+    ? 'http://localhost:5000' 
+    : '';
 
 // State management
 let strategies = [];
