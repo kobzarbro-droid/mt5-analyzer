@@ -738,7 +738,7 @@ async function loadPresets() {
         
         if (result.success) {
             presets = result.presets;
-            displayPresets(presets);
+            displayPresets();
         } else {
             showStatus(`Failed to load presets: ${result.error}`, 'error');
         }
@@ -749,7 +749,7 @@ async function loadPresets() {
     }
 }
 
-function displayPresets(presetsArray) {
+function displayPresets() {
     if (!presetsListSection) return;
     
     // Use the global presetsList DOM element
