@@ -9,8 +9,59 @@ import re
 import logging
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Trade:
+    """Single trade with details"""
+    ticket: str
+    magic_number: int
+    time: str
+    symbol: str
+    type: str
+    volume: float
+    price: float
+    sl: float
+    tp: float
+    profit: float
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return {
+            'ticket': self.ticket,
+            'magic_number': self.magic_number,
+            'time': self.time,
+            'symbol': self.symbol,
+            'type': self.type,
+            'volume': self.volume,
+            'price': self.price,
+            'sl': self.sl,
+            'tp': self.tp,
+            'profit': self.profit
+        }
+
+
+@dataclass
+class EquityPoint:
+    """Single point on equity curve"""
+    timestamp: datetime
+    balance: float
+    equity: float
+    profit: float
+    cumulative_profit: float
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return {
+            'timestamp': self.timestamp.isoformat() if isinstance(self.timestamp, datetime) else self.timestamp,
+            'balance': self.balance,
+            'equity': self.equity,
+            'profit': self.profit,
+            'cumulative_profit': self.cumulative_profit
+        }
 
 
 @dataclass
@@ -27,6 +78,7 @@ class OptimizationResult:
     sharpe_ratio: Optional[float] = None
     recovery_factor: Optional[float] = None
     win_rate: Optional[float] = None
+    magic_number: Optional[int] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
@@ -41,7 +93,8 @@ class OptimizationResult:
             'drawdown_percent': self.drawdown_percent,
             'sharpe_ratio': self.sharpe_ratio,
             'recovery_factor': self.recovery_factor,
-            'win_rate': self.win_rate
+            'win_rate': self.win_rate,
+            'magic_number': self.magic_number
         }
 
 
@@ -65,6 +118,7 @@ class BacktestReport:
     sharpe_ratio: Optional[float] = None
     recovery_factor: Optional[float] = None
     trades: List[Dict[str, Any]] = field(default_factory=list)
+    magic_number: Optional[int] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
@@ -86,7 +140,8 @@ class BacktestReport:
             'sharpe_ratio': self.sharpe_ratio,
             'recovery_factor': self.recovery_factor,
             'win_rate': (self.profit_trades / self.total_trades * 100) if self.total_trades > 0 else 0,
-            'trades_count': len(self.trades)
+            'trades_count': len(self.trades),
+            'magic_number': self.magic_number
         }
 
 
@@ -332,6 +387,7 @@ class MT5Parser:
             
             # Parse trades if available
             trades = []
+            magic_number = None
             trades_table = soup.find('table', {'id': 'trades'}) or soup.find_all('table')[-1] if soup.find_all('table') else None
             
             if trades_table:
@@ -339,6 +395,18 @@ class MT5Parser:
                 for row in trade_rows:
                     cols = row.find_all('td')
                     if len(cols) >= 7:
+                        # Try to extract magic number from various positions
+                        trade_magic = 0
+                        if len(cols) > 8:
+                            try:
+                                trade_magic = int(extract_number(cols[8].text))
+                            except:
+                                trade_magic = 0
+                        
+                        # If we find a magic number, use it as the report's magic number
+                        if trade_magic > 0 and magic_number is None:
+                            magic_number = trade_magic
+                        
                         trade = {
                             'ticket': cols[0].text.strip(),
                             'time': cols[1].text.strip(),
@@ -346,7 +414,11 @@ class MT5Parser:
                             'size': extract_number(cols[3].text),
                             'symbol': cols[4].text.strip() if len(cols) > 4 else '',
                             'price': extract_number(cols[5].text) if len(cols) > 5 else 0,
-                            'profit': extract_number(cols[6].text) if len(cols) > 6 else 0
+                            'profit': extract_number(cols[6].text) if len(cols) > 6 else 0,
+                            'magic_number': trade_magic,
+                            'volume': extract_number(cols[3].text),
+                            'sl': extract_number(cols[7].text) if len(cols) > 7 else 0,
+                            'tp': extract_number(cols[8].text) if len(cols) > 8 and trade_magic == 0 else 0
                         }
                         trades.append(trade)
             
@@ -367,7 +439,8 @@ class MT5Parser:
                 loss_trades=loss_trades,
                 sharpe_ratio=sharpe_ratio,
                 recovery_factor=recovery_factor,
-                trades=trades
+                trades=trades,
+                magic_number=magic_number
             )
             
             logger.info(f"Parsed backtest report with {len(trades)} trades")
@@ -455,3 +528,91 @@ class MT5Parser:
         
         logger.info(f"Found {len(top_results)} best parameter sets")
         return top_results
+    
+    @staticmethod
+    def calculate_equity_curve(trades: List[Trade], initial_balance: float) -> List[EquityPoint]:
+        """
+        Calculate equity curve from list of trades
+        
+        Args:
+            trades: List of Trade objects
+            initial_balance: Initial account balance
+            
+        Returns:
+            List of EquityPoint objects representing the equity curve
+        """
+        logger.info(f"Calculating equity curve for {len(trades)} trades")
+        
+        equity_curve = []
+        current_balance = initial_balance
+        cumulative_profit = 0.0
+        
+        # Sort trades by time
+        sorted_trades = sorted(trades, key=lambda t: t.time)
+        
+        # Add initial point
+        if sorted_trades:
+            try:
+                first_time = datetime.fromisoformat(sorted_trades[0].time.replace(' ', 'T'))
+            except:
+                first_time = datetime.now()
+            
+            equity_curve.append(EquityPoint(
+                timestamp=first_time,
+                balance=initial_balance,
+                equity=initial_balance,
+                profit=0.0,
+                cumulative_profit=0.0
+            ))
+        
+        # Add point for each trade
+        for trade in sorted_trades:
+            cumulative_profit += trade.profit
+            current_balance = initial_balance + cumulative_profit
+            
+            try:
+                trade_time = datetime.fromisoformat(trade.time.replace(' ', 'T'))
+            except:
+                trade_time = datetime.now()
+            
+            equity_curve.append(EquityPoint(
+                timestamp=trade_time,
+                balance=current_balance,
+                equity=current_balance,
+                profit=trade.profit,
+                cumulative_profit=cumulative_profit
+            ))
+        
+        logger.info(f"Calculated equity curve with {len(equity_curve)} points")
+        return equity_curve
+    
+    @staticmethod
+    def calculate_equity_curve_from_dict(trades: List[Dict[str, Any]], initial_balance: float) -> List[EquityPoint]:
+        """
+        Calculate equity curve from list of trade dictionaries
+        
+        Args:
+            trades: List of trade dictionaries
+            initial_balance: Initial account balance
+            
+        Returns:
+            List of EquityPoint objects representing the equity curve
+        """
+        # Convert dict trades to Trade objects
+        trade_objects = []
+        for t in trades:
+            trade_obj = Trade(
+                ticket=t.get('ticket', ''),
+                magic_number=t.get('magic_number', 0),
+                time=t.get('time', ''),
+                symbol=t.get('symbol', ''),
+                type=t.get('type', ''),
+                volume=t.get('volume', 0.0),
+                price=t.get('price', 0.0),
+                sl=t.get('sl', 0.0),
+                tp=t.get('tp', 0.0),
+                profit=t.get('profit', 0.0)
+            )
+            trade_objects.append(trade_obj)
+        
+        return MT5Parser.calculate_equity_curve(trade_objects, initial_balance)
